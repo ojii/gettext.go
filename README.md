@@ -1,3 +1,10 @@
 # gettext in golang
 
-I have no idea what I'm doing, but it sort of works.
+## TODO
+
+- [x] parse mofiles
+- [x] compile plural forms
+- [ ] non-utf8 mo files (possible wontfix)
+- [x] gettext
+- [x] ngettext
+- [ ] managing mo files / sane API

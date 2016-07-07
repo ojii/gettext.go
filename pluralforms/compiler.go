@@ -14,7 +14,7 @@ type match struct {
 	ClosePos int
 }
 
-var pat = regexp.MustCompile(`(\?|:|\|\||&&|==|!=|>|>=|<|<=|%|\d+|n)`)
+var pat = regexp.MustCompile(`(\?|:|\|\||&&|==|!=|>=|>|<=|<|%|\d+|n)`)
 
 
 type expr_token interface {
@@ -158,7 +158,7 @@ func compile_equality(tokens []string, sep string, builder cmp_test_builder) (te
 		if err != nil {
 			return test, err
 		}
-		return builder(i, true), nil
+		return builder(i, false), nil
 	} else if len(split.Right) == 1 && split.Right[0] == "n" {
 		if len(split.Left) != 1 {
 			return test, errors.New("test can only compare n to integers")
@@ -167,9 +167,9 @@ func compile_equality(tokens []string, sep string, builder cmp_test_builder) (te
 		if err != nil {
 			return test, err
 		}
-		return builder(i, false), nil
+		return builder(i, true), nil
 	} else if contains(split.Left, "n") && contains(split.Left, "%") {
-		return _pipe(split.Left, split.Right, builder, true)
+		return _pipe(split.Left, split.Right, builder, false)
 	} else {
 		return test, errors.New("equality test must have 'n' as one of the two tests")
 	}
@@ -199,11 +199,7 @@ func (gt_) Compile(tokens []string) (test Test, err error){
 	return compile_equality(tokens, ">", build_gt)
 }
 func build_gt(val uint32, flipped bool) Test {
-	if flipped {
-		return LtE{Value: val}
-	} else {
-		return Gt{Value: val}
-	}
+	return Gt{Value: val, Flipped: flipped}
 }
 
 var gte gte_
@@ -212,11 +208,7 @@ func (gte_) Compile(tokens []string) (test Test, err error){
 	return compile_equality(tokens, ">=", build_gte)
 }
 func build_gte(val uint32, flipped bool) Test {
-	if flipped {
-		return Lt{Value: val}
-	} else {
-		return GtE{Value: val}
-	}
+	return GtE{Value: val, Flipped: flipped}
 }
 
 var lt lt_
@@ -225,11 +217,7 @@ func (lt_) Compile(tokens []string) (test Test, err error){
 	return compile_equality(tokens, "<", build_lt)
 }
 func build_lt(val uint32, flipped bool) Test {
-	if flipped {
-		return GtE{Value: val}
-	} else {
-		return Lt{Value: val}
-	}
+	return Lt{Value: val, Flipped: flipped}
 }
 
 var lte lte_
@@ -238,11 +226,7 @@ func (lte_) Compile(tokens []string) (test Test, err error){
 	return compile_equality(tokens, "<=", build_lte)
 }
 func build_lte(val uint32, flipped bool) Test {
-	if flipped {
-		return Gt{Value: val}
-	} else {
-		return LtE{Value: val}
-	}
+	return LtE{Value: val, Flipped: flipped}
 }
 
 type test_token_def struct {
@@ -255,10 +239,10 @@ var precedence = []test_token_def{
 	test_token_def{Op: "&&", Token: and},
 	test_token_def{Op: "==", Token: eq},
 	test_token_def{Op: "!=", Token: neq},
-	test_token_def{Op: ">", Token: gt},
 	test_token_def{Op: ">=", Token: gte},
-	test_token_def{Op: "<", Token: lt},
+	test_token_def{Op: ">", Token: gt},
 	test_token_def{Op: "<=", Token: lte},
+	test_token_def{Op: "<", Token: lt},
 }
 
 type splitted struct {
@@ -354,7 +338,6 @@ func tokenize(s string) []string {
 			fmt.Printf("Empty chunk in string '%s'\n", s)
 		}
 	}
-	fmt.Printf("tokenize %s -> ['%s']\n", s, strings.Join(ret, "','"))
 	return ret
 }
 
@@ -378,7 +361,6 @@ func contains(haystack []string, needle string) bool {
 }
 
 func compile_expression(s string) (expr Expression, err error) {
-	fmt.Println("compile_expression", s)
 	tokens := tokenize(s)
 	if contains(tokens, "?") {
 		return ternary.Compile(tokens)
@@ -388,11 +370,9 @@ func compile_expression(s string) (expr Expression, err error) {
 }
 
 func compile_test(s string) (test Test, err error) {
-	fmt.Println("compile_test", s)
 	tokens := tokenize(s)
 	for _, token_def := range precedence {
 		if contains(tokens, token_def.Op) {
-			fmt.Println("Test Token", token_def.Op)
 			return token_def.Token.Compile(tokens)
 		}
 	}

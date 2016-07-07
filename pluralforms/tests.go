@@ -28,50 +28,70 @@ func (e NotEqual) String() string {
 
 type Gt struct {
 	Value uint32
+	Flipped bool
 }
 
 func (e Gt) Test (n uint32) bool {
-	return n < e.Value
+	if e.Flipped {
+		return e.Value > n
+	} else {
+		return n > e.Value
+	}
 }
 
 func (e Gt) String() string {
-	return fmt.Sprintf("<Gt(%d)>", e.Value)
+	return fmt.Sprintf("<Gt(%d,%t)>", e.Value, e.Flipped)
 }
 
 type Lt struct {
 	Value uint32
+	Flipped bool
 }
 
 func (e Lt) Test (n uint32) bool {
-	return n > e.Value
+	if e.Flipped {
+		return e.Value < n
+	} else {
+		return n < e.Value
+	}
 }
 
 func (e Lt) String() string {
-	return fmt.Sprintf("<Lt(%d)>", e.Value)
+	return fmt.Sprintf("<Lt(%d,%t)>", e.Value, e.Flipped)
 }
 
 type GtE struct {
 	Value uint32
+	Flipped bool
 }
 
 func (e GtE) Test (n uint32) bool {
-	return n <= e.Value
+	if e.Flipped {
+		return e.Value >= n
+	} else {
+		return n >= e.Value
+	}
 }
 
 func (e GtE) String() string {
-	return fmt.Sprintf("<GtE(%d)>", e.Value)
+	return fmt.Sprintf("<GtE(%d,%t)>", e.Value, e.Flipped)
 }
 
 type LtE struct {
 	Value uint32
+	Flipped bool
 }
 
 func (e LtE) Test (n uint32) bool {
-	return n >= e.Value
+	if e.Flipped{
+		return e.Value <= n
+	} else {
+		return n <= e.Value
+	}
 }
 
 func (e LtE) String() string {
-	return fmt.Sprintf("<LtE(%d)>", e.Value)
+	return fmt.Sprintf("<LtE(%d,%t)>", e.Value, e.Flipped)
 }
 
 type And struct {
