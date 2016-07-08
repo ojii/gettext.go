@@ -9,4 +9,17 @@
 - [ ] non-utf8 mo files (possible wontfix)
 - [x] gettext
 - [x] ngettext
-- [ ] managing mo files / sane API
+- [x] managing mo files / sane API
+
+
+## Example
+
+
+```go
+
+translations := gogettext.NewTranslations("path/to/translations/", "messages", gogettext.DefaultResolver)
+
+locale = translations.Locale("en")
+
+fmt.Println(locale.Gettext("hello from gettext"))
+```

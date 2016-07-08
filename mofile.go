@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ojii/gogettext/pluralforms"
 	"log"
 	"os"
 	"strings"
-	"github.com/ojii/gogettext/pluralforms"
 )
 
 const LE_MAGIC = 0x950412de
@@ -29,7 +29,12 @@ func (header Header) GetMinorVersion() uint32 {
 	return header.Version & 0xffff
 }
 
-type Catalog struct {
+type Catalog interface {
+	Gettext(msgid string) string
+	NGettext(msgid string, msgid_plural string, n uint32) string
+}
+
+type MoCatalog struct {
 	Header      Header
 	Language    string
 	Messages    map[string][]string
@@ -38,7 +43,21 @@ type Catalog struct {
 	Charset     string
 }
 
-func (catalog Catalog) Gettext(msgid string) string {
+type NullCatalog struct{}
+
+func (catalog NullCatalog) Gettext(msgid string) string {
+	return msgid
+}
+
+func (catalog NullCatalog) NGettext(msgid string, msgid_plural string, n uint32) string {
+	if n == 1 {
+		return msgid
+	} else {
+		return msgid_plural
+	}
+}
+
+func (catalog MoCatalog) Gettext(msgid string) string {
 	msgstrs, ok := catalog.Messages[msgid]
 	if !ok {
 		return msgid
@@ -46,7 +65,7 @@ func (catalog Catalog) Gettext(msgid string) string {
 	return msgstrs[0]
 }
 
-func (catalog Catalog) NGettext(msgid string, msgid_plural string, n uint32) string {
+func (catalog MoCatalog) NGettext(msgid string, msgid_plural string, n uint32) string {
 	msgstrs, ok := catalog.Messages[msgid]
 	if !ok {
 		if n == 1 {
@@ -91,7 +110,7 @@ func read_len_off(index uint32, file *os.File, order binary.ByteOrder) (len_offs
 	return lenoff, nil
 }
 
-func read_message(file *os.File, lenoff len_offset) (string, error){
+func read_message(file *os.File, lenoff len_offset) (string, error) {
 	_, err := file.Seek(int64(lenoff.Off), os.SEEK_SET)
 	if err != nil {
 		return "", err
@@ -104,7 +123,7 @@ func read_message(file *os.File, lenoff len_offset) (string, error){
 	return string(buf), nil
 }
 
-func (catalog *Catalog) ReadInfo(info string) error {
+func (catalog *MoCatalog) read_info(info string) error {
 	lastk := ""
 	for _, line := range strings.Split(info, "\n") {
 		item := strings.TrimSpace(line)
@@ -138,11 +157,11 @@ func (catalog *Catalog) ReadInfo(info string) error {
 }
 
 func ParseMO(file *os.File) (Catalog, error) {
-	var order binary.ByteOrder;
+	var order binary.ByteOrder
 	header := Header{}
-	catalog := Catalog{
-		Header: header,
-		Info: make(map[string]string),
+	catalog := MoCatalog{
+		Header:   header,
+		Info:     make(map[string]string),
 		Messages: make(map[string][]string),
 	}
 	magic := make([]byte, 4)
@@ -194,7 +213,7 @@ func ParseMO(file *os.File) (Catalog, error) {
 			return catalog, err
 		}
 		if mlenoff.Len == 0 {
-			err = catalog.ReadInfo(msgstr)
+			err = catalog.read_info(msgstr)
 			if err != nil {
 				return catalog, err
 			}
@@ -207,7 +226,6 @@ func ParseMO(file *os.File) (Catalog, error) {
 		} else {
 			catalog.Messages[msgid] = []string{msgstr}
 		}
-
 
 		current_master_index += 8
 		current_transl_index += 8

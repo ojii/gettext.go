@@ -7,15 +7,14 @@ type Test interface {
 	String() string
 }
 
-
 type Ternary struct {
-	Test Test
-	True Expression
+	Test  Test
+	True  Expression
 	False Expression
 }
 
-func (t Ternary) Eval (n uint32) int {
-	if (t.Test.Test(n)){
+func (t Ternary) Eval(n uint32) int {
+	if t.Test.Test(n) {
 		if t.True == nil {
 			return -1
 		}

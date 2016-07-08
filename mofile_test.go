@@ -1,22 +1,13 @@
 package gogettext
 
 import (
-	"testing"
-	"os"
 	"fmt"
+	"os"
+	"testing"
 )
 
-
-func assert_equal(t *testing.T, expected string, got string){
-	if expected != got {
-		t.Logf("%s != %s", expected, got)
-		t.Fail()
-	}
-}
-
-
 func TestEnGettext(t *testing.T) {
-	file, err := os.Open("testdata/en.mo")
+	file, err := os.Open("testdata/en/messages.mo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +19,7 @@ func TestEnGettext(t *testing.T) {
 }
 
 func TestEnNGettext(t *testing.T) {
-	file, err := os.Open("testdata/en.mo")
+	file, err := os.Open("testdata/en/messages.mo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +42,7 @@ func TestEnNGettext(t *testing.T) {
 }
 
 func TestJaGettext(t *testing.T) {
-	file, err := os.Open("testdata/ja.mo")
+	file, err := os.Open("testdata/ja/messages.mo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +54,7 @@ func TestJaGettext(t *testing.T) {
 }
 
 func TestJaNGettext(t *testing.T) {
-	file, err := os.Open("testdata/ja.mo")
+	file, err := os.Open("testdata/ja/messages.mo")
 	if err != nil {
 		t.Fatal(err)
 	}

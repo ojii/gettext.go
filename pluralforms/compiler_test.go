@@ -1,16 +1,15 @@
 package pluralforms
 
 import (
-	"testing"
-	"os"
 	"encoding/json"
+	"os"
+	"testing"
 )
 
 type fixture struct {
 	PluralForm string
-	Fixture []int
+	Fixture    []int
 }
-
 
 func TestCompiler(t *testing.T) {
 	f, err := os.Open("testdata/plural_forms.json")
@@ -37,7 +36,7 @@ func TestCompiler(t *testing.T) {
 					t.Logf("'%s' with n = %d, expected %d, got %d, compiled to %s", data.PluralForm, n, e, i, expr)
 					t.Fail()
 				}
-				if (i == -1){
+				if i == -1 {
 					break
 				}
 			}

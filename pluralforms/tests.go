@@ -6,7 +6,7 @@ type Equal struct {
 	Value uint32
 }
 
-func (e Equal) Test (n uint32) bool {
+func (e Equal) Test(n uint32) bool {
 	return n == e.Value
 }
 
@@ -18,7 +18,7 @@ type NotEqual struct {
 	Value uint32
 }
 
-func (e NotEqual) Test (n uint32) bool {
+func (e NotEqual) Test(n uint32) bool {
 	return n != e.Value
 }
 
@@ -27,11 +27,11 @@ func (e NotEqual) String() string {
 }
 
 type Gt struct {
-	Value uint32
+	Value   uint32
 	Flipped bool
 }
 
-func (e Gt) Test (n uint32) bool {
+func (e Gt) Test(n uint32) bool {
 	if e.Flipped {
 		return e.Value > n
 	} else {
@@ -44,11 +44,11 @@ func (e Gt) String() string {
 }
 
 type Lt struct {
-	Value uint32
+	Value   uint32
 	Flipped bool
 }
 
-func (e Lt) Test (n uint32) bool {
+func (e Lt) Test(n uint32) bool {
 	if e.Flipped {
 		return e.Value < n
 	} else {
@@ -61,11 +61,11 @@ func (e Lt) String() string {
 }
 
 type GtE struct {
-	Value uint32
+	Value   uint32
 	Flipped bool
 }
 
-func (e GtE) Test (n uint32) bool {
+func (e GtE) Test(n uint32) bool {
 	if e.Flipped {
 		return e.Value >= n
 	} else {
@@ -78,12 +78,12 @@ func (e GtE) String() string {
 }
 
 type LtE struct {
-	Value uint32
+	Value   uint32
 	Flipped bool
 }
 
-func (e LtE) Test (n uint32) bool {
-	if e.Flipped{
+func (e LtE) Test(n uint32) bool {
+	if e.Flipped {
 		return e.Value <= n
 	} else {
 		return n <= e.Value
@@ -95,12 +95,12 @@ func (e LtE) String() string {
 }
 
 type And struct {
-	Left Test
+	Left  Test
 	Right Test
 }
 
-func (e And) Test (n uint32) bool {
-	if (!e.Left.Test(n)){
+func (e And) Test(n uint32) bool {
+	if !e.Left.Test(n) {
 		return false
 	} else {
 		return e.Right.Test(n)
@@ -112,12 +112,12 @@ func (e And) String() string {
 }
 
 type Or struct {
-	Left Test
+	Left  Test
 	Right Test
 }
 
-func (e Or) Test (n uint32) bool {
-	if (e.Left.Test(n)){
+func (e Or) Test(n uint32) bool {
+	if e.Left.Test(n) {
 		return true
 	} else {
 		return e.Right.Test(n)
@@ -130,10 +130,10 @@ func (e Or) String() string {
 
 type Pipe struct {
 	Modifier Math
-	Action Test
+	Action   Test
 }
 
-func (e Pipe) Test (n uint32) bool {
+func (e Pipe) Test(n uint32) bool {
 	return e.Action.Test(e.Modifier.Calc(n))
 }
 

@@ -7,12 +7,11 @@ type Math interface {
 	String() string
 }
 
-
 type Mod struct {
 	Value uint32
 }
 
-func (m Mod) Calc (n uint32) uint32 {
+func (m Mod) Calc(n uint32) uint32 {
 	return n % m.Value
 }
 

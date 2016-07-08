@@ -14,7 +14,7 @@ type Const struct {
 	Value int
 }
 
-func (c Const) Eval (n uint32) int {
+func (c Const) Eval(n uint32) int {
 	return c.Value
 }
 
@@ -22,7 +22,7 @@ func (c Const) String() string {
 	return fmt.Sprintf("<Const:%d>", c.Value)
 }
 
-func Pformat(expr Expression) string {
+func pformat(expr Expression) string {
 	ret := ""
 	s := expr.String()
 	level := -1
