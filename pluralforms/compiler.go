@@ -9,28 +9,28 @@ import (
 )
 
 type match struct {
-	OpenPos  int
-	ClosePos int
+	open_pos  int
+	close_pos int
 }
 
 var pat = regexp.MustCompile(`(\?|:|\|\||&&|==|!=|>=|>|<=|<|%|\d+|n)`)
 
 type expr_token interface {
-	Compile(tokens []string) (expr Expression, err error)
+	compile(tokens []string) (expr Expression, err error)
 }
 
 type test_token interface {
-	Compile(tokens []string) (test Test, err error)
+	compile(tokens []string) (test test, err error)
 }
 
-type cmp_test_builder func(val uint32, flipped bool) Test
-type logic_test_build func(left Test, right Test) Test
+type cmp_test_builder func(val uint32, flipped bool) test
+type logic_test_build func(left test, right test) test
 
-var ternary ternary_
+var ternary_token ternary_
 
 type ternary_ struct{}
 
-func (ternary_) Compile(tokens []string) (expr Expression, err error) {
+func (ternary_) compile(tokens []string) (expr Expression, err error) {
 	main, err := split_tokens(tokens, "?")
 	if err != nil {
 		return expr, err
@@ -51,32 +51,32 @@ func (ternary_) Compile(tokens []string) (expr Expression, err error) {
 	if err != nil {
 		return expr, nil
 	}
-	return Ternary{
-		Test:  test,
-		True:  true_action,
-		False: false_action,
+	return ternary{
+		test:       test,
+		true_expr:  true_action,
+		false_expr: false_action,
 	}, nil
 }
 
-var const_val const_val_
+var const_token const_val_
 
 type const_val_ struct{}
 
-func (const_val_) Compile(tokens []string) (expr Expression, err error) {
+func (const_val_) compile(tokens []string) (expr Expression, err error) {
 	if len(tokens) == 0 {
 		return expr, errors.New("Got nothing instead of constant")
 	}
 	if len(tokens) != 1 {
-		return expr, errors.New(fmt.Sprintf("Invalid constant: %s", strings.Join(tokens, "")))
+		return expr, fmt.Errorf("Invalid constant: %s", strings.Join(tokens, ""))
 	}
 	i, err := strconv.Atoi(tokens[0])
 	if err != nil {
 		return expr, err
 	}
-	return Const{Value: i}, nil
+	return const_value{value: i}, nil
 }
 
-func compile_logic_test(tokens []string, sep string, builder logic_test_build) (test Test, err error) {
+func compile_logic_test(tokens []string, sep string, builder logic_test_build) (test test, err error) {
 	split, err := split_tokens(tokens, sep)
 	if err != nil {
 		return test, err
@@ -92,29 +92,29 @@ func compile_logic_test(tokens []string, sep string, builder logic_test_build) (
 	return builder(left, right), nil
 }
 
-var or or_
+var or_token or_
 
 type or_ struct{}
 
-func (or_) Compile(tokens []string) (test Test, err error) {
+func (or_) compile(tokens []string) (test test, err error) {
 	return compile_logic_test(tokens, "||", build_or)
 }
-func build_or(left Test, right Test) Test {
-	return Or{Left: left, Right: right}
+func build_or(left test, right test) test {
+	return or{left: left, right: right}
 }
 
-var and and_
+var and_token and_
 
 type and_ struct{}
 
-func (and_) Compile(tokens []string) (test Test, err error) {
+func (and_) compile(tokens []string) (test test, err error) {
 	return compile_logic_test(tokens, "&&", build_and)
 }
-func build_and(left Test, right Test) Test {
-	return And{Left: left, Right: right}
+func build_and(left test, right test) test {
+	return and{left: left, right: right}
 }
 
-func compile_mod(tokens []string) (math Math, err error) {
+func compile_mod(tokens []string) (math math, err error) {
 	split, err := split_tokens(tokens, "%")
 	if err != nil {
 		return math, err
@@ -129,10 +129,10 @@ func compile_mod(tokens []string) (math Math, err error) {
 	if err != nil {
 		return math, err
 	}
-	return Mod{Value: uint32(i)}, nil
+	return mod{value: uint32(i)}, nil
 }
 
-func _pipe(mod_tokens []string, action_tokens []string, builder cmp_test_builder, flipped bool) (test Test, err error) {
+func _pipe(mod_tokens []string, action_tokens []string, builder cmp_test_builder, flipped bool) (test test, err error) {
 	modifier, err := compile_mod(mod_tokens)
 	if err != nil {
 		return test, err
@@ -145,13 +145,13 @@ func _pipe(mod_tokens []string, action_tokens []string, builder cmp_test_builder
 		return test, err
 	}
 	action := builder(uint32(i), flipped)
-	return Pipe{
-		Modifier: modifier,
-		Action:   action,
+	return pipe{
+		modifier: modifier,
+		action:   action,
 	}, nil
 }
 
-func compile_equality(tokens []string, sep string, builder cmp_test_builder) (test Test, err error) {
+func compile_equality(tokens []string, sep string, builder cmp_test_builder) (test test, err error) {
 	split, err := split_tokens(tokens, sep)
 	if err != nil {
 		return test, err
@@ -181,86 +181,86 @@ func compile_equality(tokens []string, sep string, builder cmp_test_builder) (te
 	}
 }
 
-var eq eq_
+var eq_token eq_
 
 type eq_ struct{}
 
-func (eq_) Compile(tokens []string) (test Test, err error) {
+func (eq_) compile(tokens []string) (test test, err error) {
 	return compile_equality(tokens, "==", build_eq)
 }
-func build_eq(val uint32, flipped bool) Test {
-	return Equal{Value: val}
+func build_eq(val uint32, flipped bool) test {
+	return equal{value: val}
 }
 
-var neq neq_
+var neq_token neq_
 
 type neq_ struct{}
 
-func (neq_) Compile(tokens []string) (test Test, err error) {
+func (neq_) compile(tokens []string) (test test, err error) {
 	return compile_equality(tokens, "!=", build_neq)
 }
-func build_neq(val uint32, flipped bool) Test {
-	return NotEqual{Value: val}
+func build_neq(val uint32, flipped bool) test {
+	return notequal{value: val}
 }
 
-var gt gt_
+var gt_token gt_
 
 type gt_ struct{}
 
-func (gt_) Compile(tokens []string) (test Test, err error) {
+func (gt_) compile(tokens []string) (test test, err error) {
 	return compile_equality(tokens, ">", build_gt)
 }
-func build_gt(val uint32, flipped bool) Test {
-	return Gt{Value: val, Flipped: flipped}
+func build_gt(val uint32, flipped bool) test {
+	return gt{value: val, flipped: flipped}
 }
 
-var gte gte_
+var gte_token gte_
 
 type gte_ struct{}
 
-func (gte_) Compile(tokens []string) (test Test, err error) {
+func (gte_) compile(tokens []string) (test test, err error) {
 	return compile_equality(tokens, ">=", build_gte)
 }
-func build_gte(val uint32, flipped bool) Test {
-	return GtE{Value: val, Flipped: flipped}
+func build_gte(val uint32, flipped bool) test {
+	return gte{value: val, flipped: flipped}
 }
 
-var lt lt_
+var lt_token lt_
 
 type lt_ struct{}
 
-func (lt_) Compile(tokens []string) (test Test, err error) {
+func (lt_) compile(tokens []string) (test test, err error) {
 	return compile_equality(tokens, "<", build_lt)
 }
-func build_lt(val uint32, flipped bool) Test {
-	return Lt{Value: val, Flipped: flipped}
+func build_lt(val uint32, flipped bool) test {
+	return lt{value: val, flipped: flipped}
 }
 
-var lte lte_
+var lte_token lte_
 
 type lte_ struct{}
 
-func (lte_) Compile(tokens []string) (test Test, err error) {
+func (lte_) compile(tokens []string) (test test, err error) {
 	return compile_equality(tokens, "<=", build_lte)
 }
-func build_lte(val uint32, flipped bool) Test {
-	return LtE{Value: val, Flipped: flipped}
+func build_lte(val uint32, flipped bool) test {
+	return lte{value: val, flipped: flipped}
 }
 
 type test_token_def struct {
-	Op    string
-	Token test_token
+	op    string
+	token test_token
 }
 
 var precedence = []test_token_def{
-	test_token_def{Op: "||", Token: or},
-	test_token_def{Op: "&&", Token: and},
-	test_token_def{Op: "==", Token: eq},
-	test_token_def{Op: "!=", Token: neq},
-	test_token_def{Op: ">=", Token: gte},
-	test_token_def{Op: ">", Token: gt},
-	test_token_def{Op: "<=", Token: lte},
-	test_token_def{Op: "<", Token: lt},
+	test_token_def{op: "||", token: or_token},
+	test_token_def{op: "&&", token: and_token},
+	test_token_def{op: "==", token: eq_token},
+	test_token_def{op: "!=", token: neq_token},
+	test_token_def{op: ">=", token: gte_token},
+	test_token_def{op: ">", token: gt_token},
+	test_token_def{op: "<=", token: lte_token},
+	test_token_def{op: "<", token: lt_token},
 }
 
 type splitted struct {
@@ -283,7 +283,7 @@ func index(tokens []string, sep string) int {
 func split_tokens(tokens []string, sep string) (s splitted, err error) {
 	index := index(tokens, sep)
 	if index == -1 {
-		return s, errors.New(fmt.Sprintf("'%s' not found in ['%s']", sep, strings.Join(tokens, "','")))
+		return s, fmt.Errorf("'%s' not found in ['%s']", sep, strings.Join(tokens, "','"))
 	}
 	return splitted{
 		Left:  tokens[:index],
@@ -306,7 +306,7 @@ func scan(s string) []match {
 		case ')':
 			depth--
 			if depth == 0 {
-				ret = append(ret, match{OpenPos: opener, ClosePos: index + 1})
+				ret = append(ret, match{open_pos: opener, close_pos: index + 1})
 			}
 		}
 
@@ -324,11 +324,11 @@ func split(s string) []string {
 	end := len(s)
 	ret := []string{}
 	for _, info := range scan(s) {
-		if last != info.OpenPos {
-			ret = append(ret, s[last:info.OpenPos])
+		if last != info.open_pos {
+			ret = append(ret, s[last:info.open_pos])
 		}
-		ret = append(ret, s[info.OpenPos:info.ClosePos])
-		last = info.ClosePos
+		ret = append(ret, s[info.open_pos:info.close_pos])
+		last = info.close_pos
 	}
 	if last != end {
 		ret = append(ret, s[last:])
@@ -368,7 +368,7 @@ func tokenize(s string) []string {
 // Compile a string containing a plural form expression to a Expression object.
 func Compile(s string) (expr Expression, err error) {
 	if s == "0" {
-		return Const{Value: 0}, nil
+		return const_value{value: 0}, nil
 	}
 	if !strings.Contains(s, "?") {
 		s += "?1:0"
@@ -390,18 +390,18 @@ func contains(haystack []string, needle string) bool {
 func compile_expression(s string) (expr Expression, err error) {
 	tokens := tokenize(s)
 	if contains(tokens, "?") {
-		return ternary.Compile(tokens)
+		return ternary_token.compile(tokens)
 	} else {
-		return const_val.Compile(tokens)
+		return const_token.compile(tokens)
 	}
 }
 
 // Compiles a test (comparison)
-func compile_test(s string) (test Test, err error) {
+func compile_test(s string) (test test, err error) {
 	tokens := tokenize(s)
 	for _, token_def := range precedence {
-		if contains(tokens, token_def.Op) {
-			return token_def.Token.Compile(tokens)
+		if contains(tokens, token_def.op) {
+			return token_def.token.compile(tokens)
 		}
 	}
 	return test, errors.New("Cannot compile")

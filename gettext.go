@@ -8,6 +8,8 @@ import (
 	"path"
 )
 
+// Translations holds the translations in the different locales your app
+// supports. Use NewTranslations to create an instance.
 type Translations struct {
 	cache    map[string]Catalog
 	root     string
@@ -15,15 +17,17 @@ type Translations struct {
 	resolver PathResolver
 }
 
-// Resolves a path to a mo file
+// PathResolver resolves a path to a mo file
 type PathResolver func(root string, locale string, domain string) string
 
-// The default resolver for the following folder structure: <root>/<locale>/LC_MESSAGES/<domain>.mo
+// DefaultResolver resolves paths in the standard format of:
+// <root>/<locale>/LC_MESSAGES/<domain>.mo
 func DefaultResolver(root string, locale string, domain string) string {
 	return path.Join(root, locale, "LC_MESSAGES", fmt.Sprintf("%s.mo", domain))
 }
 
-// Initialises a set of translation files
+// NewTranslations is the main entry point for gogettext. Use this to set up
+// the locales for your app.
 // root is the root of your locale folder, domain the domain you want to load
 // and resolver a function that resolves mo file paths.
 // If your structure is <root>/<locale>/LC_MESSAGES/<domain>.mo, you can use
@@ -50,20 +54,20 @@ func (t Translations) load(locale string) {
 	path := t.resolver(t.root, locale, t.domain)
 	f, err := os.Open(path)
 	if err != nil {
-		t.cache[locale] = NullCatalog{}
+		t.cache[locale] = nullcatalog{}
 		return
 	}
 	defer f.Close()
 	catalog, err := ParseMO(f)
 	if err != nil {
-		t.cache[locale] = NullCatalog{}
+		t.cache[locale] = nullcatalog{}
 		return
 	}
 	t.cache[locale] = catalog
 }
 
-// Returns the catalog translations for a given Locale. If the given locale is
-// not available, a NullCatalog is returned.
+// Locale returns the catalog translations for a given Locale. If the given
+// locale is not available, a NullCatalog is returned.
 func (t Translations) Locale(locale string) Catalog {
 	_, ok := t.cache[locale]
 	if !ok {

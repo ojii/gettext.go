@@ -3,7 +3,6 @@ package gogettext
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"github.com/ojii/gogettext/pluralforms"
 	"log"
@@ -11,45 +10,46 @@ import (
 	"strings"
 )
 
-const LE_MAGIC = 0x950412de
-const BE_MAGIC = 0xde120495
+const le_magic = 0x950412de
+const be_magic = 0xde120495
 
-type Header struct {
-	Version          uint32
-	NumStrings       uint32
-	MasterIndex      uint32
-	TranslationIndex uint32
+type header struct {
+	Version           uint32
+	NumStrings        uint32
+	MasterIndex       uint32
+	TranslationsIndex uint32
 }
 
-func (header Header) GetMajorVersion() uint32 {
+func (header header) get_major_version() uint32 {
 	return header.Version >> 16
 }
 
-func (header Header) GetMinorVersion() uint32 {
+func (header header) get_minor_version() uint32 {
 	return header.Version & 0xffff
 }
 
+// Catalog of translations for a given locale.
 type Catalog interface {
 	Gettext(msgid string) string
 	NGettext(msgid string, msgid_plural string, n uint32) string
 }
 
-type MoCatalog struct {
-	Header      Header
-	Language    string
-	Messages    map[string][]string
-	PluralForms pluralforms.Expression
-	Info        map[string]string
-	Charset     string
+type mocatalog struct {
+	header      header
+	language    string
+	messages    map[string][]string
+	pluralforms pluralforms.Expression
+	info        map[string]string
+	charset     string
 }
 
-type NullCatalog struct{}
+type nullcatalog struct{}
 
-func (catalog NullCatalog) Gettext(msgid string) string {
+func (catalog nullcatalog) Gettext(msgid string) string {
 	return msgid
 }
 
-func (catalog NullCatalog) NGettext(msgid string, msgid_plural string, n uint32) string {
+func (catalog nullcatalog) NGettext(msgid string, msgid_plural string, n uint32) string {
 	if n == 1 {
 		return msgid
 	} else {
@@ -57,16 +57,16 @@ func (catalog NullCatalog) NGettext(msgid string, msgid_plural string, n uint32)
 	}
 }
 
-func (catalog MoCatalog) Gettext(msgid string) string {
-	msgstrs, ok := catalog.Messages[msgid]
+func (catalog mocatalog) Gettext(msgid string) string {
+	msgstrs, ok := catalog.messages[msgid]
 	if !ok {
 		return msgid
 	}
 	return msgstrs[0]
 }
 
-func (catalog MoCatalog) NGettext(msgid string, msgid_plural string, n uint32) string {
-	msgstrs, ok := catalog.Messages[msgid]
+func (catalog mocatalog) NGettext(msgid string, msgid_plural string, n uint32) string {
+	msgstrs, ok := catalog.messages[msgid]
 	if !ok {
 		if n == 1 {
 			return msgid
@@ -74,7 +74,7 @@ func (catalog MoCatalog) NGettext(msgid string, msgid_plural string, n uint32) s
 			return msgid_plural
 		}
 	} else {
-		index := catalog.PluralForms.Eval(n)
+		index := catalog.pluralforms.Eval(n)
 		if index > len(msgstrs) {
 			if n == 1 {
 				return msgid
@@ -123,7 +123,7 @@ func read_message(file *os.File, lenoff len_offset) (string, error) {
 	return string(buf), nil
 }
 
-func (catalog *MoCatalog) read_info(info string) error {
+func (catalog *mocatalog) read_info(info string) error {
 	lastk := ""
 	for _, line := range strings.Split(info, "\n") {
 		item := strings.TrimSpace(line)
@@ -136,13 +136,13 @@ func (catalog *MoCatalog) read_info(info string) error {
 			tmp := strings.SplitN(item, ":", 2)
 			k = strings.ToLower(strings.TrimSpace(tmp[0]))
 			v = strings.TrimSpace(tmp[1])
-			catalog.Info[k] = v
+			catalog.info[k] = v
 			lastk = k
 		} else if len(lastk) != 0 {
-			catalog.Info[lastk] += "\n" + item
+			catalog.info[lastk] += "\n" + item
 		}
 		if k == "content-type" {
-			catalog.Charset = strings.Split(v, "charset=")[1]
+			catalog.charset = strings.Split(v, "charset=")[1]
 		} else if k == "plural-forms" {
 			p := strings.Split(v, ";")[1]
 			s := strings.Split(p, "plural=")[1]
@@ -150,19 +150,20 @@ func (catalog *MoCatalog) read_info(info string) error {
 			if err != nil {
 				return err
 			}
-			catalog.PluralForms = expr
+			catalog.pluralforms = expr
 		}
 	}
 	return nil
 }
 
+// ParseMO parses a mo file into a Catalog if possible.
 func ParseMO(file *os.File) (Catalog, error) {
 	var order binary.ByteOrder
-	header := Header{}
-	catalog := MoCatalog{
-		Header:   header,
-		Info:     make(map[string]string),
-		Messages: make(map[string][]string),
+	header := header{}
+	catalog := mocatalog{
+		header:   header,
+		info:     make(map[string]string),
+		messages: make(map[string][]string),
 	}
 	magic := make([]byte, 4)
 	_, err := file.Read(magic)
@@ -171,12 +172,12 @@ func ParseMO(file *os.File) (Catalog, error) {
 	}
 	magic_number := binary.LittleEndian.Uint32(magic)
 	switch magic_number {
-	case LE_MAGIC:
+	case le_magic:
 		order = binary.LittleEndian
-	case BE_MAGIC:
+	case be_magic:
 		order = binary.BigEndian
 	default:
-		return catalog, errors.New(fmt.Sprintf("Wrong magic %d", magic_number))
+		return catalog, fmt.Errorf("Wrong magic %d", magic_number)
 	}
 	raw_headers := make([]byte, 32)
 	_, err = file.Read(raw_headers)
@@ -188,12 +189,12 @@ func ParseMO(file *os.File) (Catalog, error) {
 	if err != nil {
 		return catalog, err
 	}
-	if (header.GetMajorVersion() != 0) && (header.GetMajorVersion() != 1) {
-		log.Printf("major %d minor %d", header.GetMajorVersion(), header.GetMinorVersion())
-		return catalog, errors.New(fmt.Sprintf("Unsupported version: %d.%d", header.GetMajorVersion(), header.GetMinorVersion()))
+	if (header.get_major_version() != 0) && (header.get_major_version() != 1) {
+		log.Printf("major %d minor %d", header.get_major_version(), header.get_minor_version())
+		return catalog, fmt.Errorf("Unsupported version: %d.%d", header.get_major_version(), header.get_minor_version())
 	}
 	current_master_index := header.MasterIndex
-	current_transl_index := header.TranslationIndex
+	current_transl_index := header.TranslationsIndex
 	var index uint32 = 0
 	for ; index < header.NumStrings; index++ {
 		mlenoff, err := read_len_off(current_master_index, file, order)
@@ -222,9 +223,9 @@ func ParseMO(file *os.File) (Catalog, error) {
 			// Plural!
 			msgidsingular := strings.Split(msgid, "\x00")[0]
 			translations := strings.Split(msgstr, "\x00")
-			catalog.Messages[msgidsingular] = translations
+			catalog.messages[msgidsingular] = translations
 		} else {
-			catalog.Messages[msgid] = []string{msgstr}
+			catalog.messages[msgid] = []string{msgstr}
 		}
 
 		current_master_index += 8

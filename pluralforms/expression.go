@@ -1,45 +1,39 @@
 package pluralforms
 
-import (
-	"fmt"
-	"strings"
-)
-
+// Expression is a plurfalforms expression. Eval evaluates the expression for
+// a given n value. Use pluralforms.Compile to generate Expression instances.
 type Expression interface {
 	Eval(n uint32) int
-	String() string
 }
 
-type Const struct {
-	Value int
+type const_value struct {
+	value int
 }
 
-func (c Const) Eval(n uint32) int {
-	return c.Value
+func (c const_value) Eval(n uint32) int {
+	return c.value
 }
 
-func (c Const) String() string {
-	return fmt.Sprintf("<Const:%d>", c.Value)
+type test interface {
+	test(n uint32) bool
 }
 
-func pformat(expr Expression) string {
-	ret := ""
-	s := expr.String()
-	level := -1
-	for _, rune := range s {
-		switch rune {
-		case '<':
-			level++
-			ret += "\n" + strings.Repeat("  ", level)
-		case '>':
-			level--
-			if level >= 0 {
-				ret += "\n" + strings.Repeat("  ", level)
-			}
-		case ':', '?', '|':
-		default:
-			ret += fmt.Sprintf("%c", rune)
+type ternary struct {
+	test       test
+	true_expr  Expression
+	false_expr Expression
+}
+
+func (t ternary) Eval(n uint32) int {
+	if t.test.test(n) {
+		if t.true_expr == nil {
+			return -1
 		}
+		return t.true_expr.Eval(n)
+	} else {
+		if t.false_expr == nil {
+			return -1
+		}
+		return t.false_expr.Eval(n)
 	}
-	return strings.Replace(ret, "\n\n", "\n", -1)
 }
