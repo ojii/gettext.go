@@ -1,142 +1,104 @@
 package pluralforms
 
-import "fmt"
-
-type Equal struct {
-	Value uint32
+type equal struct {
+	value uint32
 }
 
-func (e Equal) Test(n uint32) bool {
-	return n == e.Value
+func (e equal) test(n uint32) bool {
+	return n == e.value
 }
 
-func (e Equal) String() string {
-	return fmt.Sprintf("<Equal(%d)>", e.Value)
+type notequal struct {
+	value uint32
 }
 
-type NotEqual struct {
-	Value uint32
+func (e notequal) test(n uint32) bool {
+	return n != e.value
 }
 
-func (e NotEqual) Test(n uint32) bool {
-	return n != e.Value
+type gt struct {
+	value   uint32
+	flipped bool
 }
 
-func (e NotEqual) String() string {
-	return fmt.Sprintf("<NotEqual(%d)>", e.Value)
-}
-
-type Gt struct {
-	Value   uint32
-	Flipped bool
-}
-
-func (e Gt) Test(n uint32) bool {
-	if e.Flipped {
-		return e.Value > n
+func (e gt) test(n uint32) bool {
+	if e.flipped {
+		return e.value > n
 	} else {
-		return n > e.Value
+		return n > e.value
 	}
 }
 
-func (e Gt) String() string {
-	return fmt.Sprintf("<Gt(%d,%t)>", e.Value, e.Flipped)
+type lt struct {
+	value   uint32
+	flipped bool
 }
 
-type Lt struct {
-	Value   uint32
-	Flipped bool
-}
-
-func (e Lt) Test(n uint32) bool {
-	if e.Flipped {
-		return e.Value < n
+func (e lt) test(n uint32) bool {
+	if e.flipped {
+		return e.value < n
 	} else {
-		return n < e.Value
+		return n < e.value
 	}
 }
 
-func (e Lt) String() string {
-	return fmt.Sprintf("<Lt(%d,%t)>", e.Value, e.Flipped)
+type gte struct {
+	value   uint32
+	flipped bool
 }
 
-type GtE struct {
-	Value   uint32
-	Flipped bool
-}
-
-func (e GtE) Test(n uint32) bool {
-	if e.Flipped {
-		return e.Value >= n
+func (e gte) test(n uint32) bool {
+	if e.flipped {
+		return e.value >= n
 	} else {
-		return n >= e.Value
+		return n >= e.value
 	}
 }
 
-func (e GtE) String() string {
-	return fmt.Sprintf("<GtE(%d,%t)>", e.Value, e.Flipped)
+type lte struct {
+	value   uint32
+	flipped bool
 }
 
-type LtE struct {
-	Value   uint32
-	Flipped bool
-}
-
-func (e LtE) Test(n uint32) bool {
-	if e.Flipped {
-		return e.Value <= n
+func (e lte) test(n uint32) bool {
+	if e.flipped {
+		return e.value <= n
 	} else {
-		return n <= e.Value
+		return n <= e.value
 	}
 }
 
-func (e LtE) String() string {
-	return fmt.Sprintf("<LtE(%d,%t)>", e.Value, e.Flipped)
+type and struct {
+	left  test
+	right test
 }
 
-type And struct {
-	Left  Test
-	Right Test
-}
-
-func (e And) Test(n uint32) bool {
-	if !e.Left.Test(n) {
+func (e and) test(n uint32) bool {
+	if !e.left.test(n) {
 		return false
 	} else {
-		return e.Right.Test(n)
+		return e.right.test(n)
 	}
 }
 
-func (e And) String() string {
-	return fmt.Sprintf("<And(%s&&%s)>", e.Left, e.Right)
+type or struct {
+	left  test
+	right test
 }
 
-type Or struct {
-	Left  Test
-	Right Test
-}
-
-func (e Or) Test(n uint32) bool {
-	if e.Left.Test(n) {
+func (e or) test(n uint32) bool {
+	if e.left.test(n) {
 		return true
 	} else {
-		return e.Right.Test(n)
+		return e.right.test(n)
 	}
 }
 
-func (e Or) String() string {
-	return fmt.Sprintf("<Or(%s||%s)>", e.Left, e.Right)
+type pipe struct {
+	modifier math
+	action   test
 }
 
-type Pipe struct {
-	Modifier Math
-	Action   Test
-}
-
-func (e Pipe) Test(n uint32) bool {
-	return e.Action.Test(e.Modifier.Calc(n))
-}
-
-func (e Pipe) String() string {
-	return fmt.Sprintf("<Pipe(%s|%s)>", e.Modifier, e.Action)
+func (e pipe) test(n uint32) bool {
+	return e.action.test(e.modifier.calc(n))
 }

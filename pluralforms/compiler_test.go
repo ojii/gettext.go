@@ -17,7 +17,7 @@ func TestCompiler(t *testing.T) {
 		t.Fatal(err)
 	}
 	dec := json.NewDecoder(f)
-	fixtures := make([]fixture, 0)
+	var fixtures []fixture
 	err = dec.Decode(&fixtures)
 	if err != nil {
 		t.Fatal(err)
