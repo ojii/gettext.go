@@ -24,4 +24,10 @@ translations := gettext.NewTranslations("path/to/translations/", "messages", get
 locale = translations.Locale("en")
 
 fmt.Println(locale.Gettext("hello from gettext"))
+
+one := 1
+two := 2
+
+fmt.Println(fmt.Sprintf(locale.NGettext("%d thing", "%d things", uint32(one)), one))
+fmt.Println(fmt.Sprintf(locale.NGettext("%d thing", "%d things", uint32(two)), two))
 ```
