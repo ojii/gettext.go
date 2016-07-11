@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path"
 	"testing"
+	"io/ioutil"
+	"os"
 )
 
 func TestNullTranslations(t *testing.T) {
@@ -76,4 +78,127 @@ func TestRealTranslations(t *testing.T) {
 		fmt.Sprintf(de.NGettext("order %d beer", "order %d beers", 2), 2),
 		"order 2 beers",
 	)
+}
+
+
+func TestPreload(t *testing.T) {
+	dir, err := ioutil.TempDir("", "gogettext")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	err = os.MkdirAll(path.Join(dir, "en", "LC_MESSAGES"), 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.MkdirAll(path.Join(dir, "ja", "LC_MESSAGES"), 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Link(
+		"testdata/en/messages.mo",
+		path.Join(dir, "en", "LC_MESSAGES", "messages.mo"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Link(
+		"testdata/ja/messages.mo",
+		path.Join(dir, "ja", "LC_MESSAGES", "messages.mo"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	translations := NewTranslations(dir, "messages", DefaultResolver)
+	translations.Preload("en")
+	err = os.Remove(path.Join(dir, "en", "LC_MESSAGES", "messages.mo"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Remove(path.Join(dir, "ja", "LC_MESSAGES", "messages.mo"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// EN is preloaded so should still work without the files there
+	en := translations.Locale("en")
+	assert_equal(t, en.Gettext("greeting"), "Hello")
+	assert_equal(t,
+		fmt.Sprintf(en.NGettext("order %d beer", "order %d beers", 0), 0),
+		"0 beers please",
+	)
+	assert_equal(t,
+		fmt.Sprintf(en.NGettext("order %d beer", "order %d beers", 1), 1),
+		"1 beer please",
+	)
+	assert_equal(t,
+		fmt.Sprintf(en.NGettext("order %d beer", "order %d beers", 2), 2),
+		"2 beers please",
+	)
+	// JA wasn't preloaded so should do nothing since files aren't there
+	ja := translations.Locale("ja")
+	assert_equal(t, ja.Gettext("greeting"), "greeting")
+	assert_equal(t,
+		fmt.Sprintf(ja.NGettext("order %d beer", "order %d beers", 0), 0),
+		"order 0 beers",
+	)
+	assert_equal(t,
+		fmt.Sprintf(ja.NGettext("order %d beer", "order %d beers", 1), 1),
+		"order 1 beer",
+	)
+	assert_equal(t,
+		fmt.Sprintf(ja.NGettext("order %d beer", "order %d beers", 2), 2),
+		"order 2 beers",
+	)
+}
+
+func po_resolver(root string, locale string, domain string) string {
+	return path.Join(root, locale, fmt.Sprintf("%s.po", domain))
+}
+
+func TestNotMoFile(t *testing.T) {
+	translations := NewTranslations("testdata/", "messages", po_resolver)
+	en := translations.Locale("en")
+	assert_equal(t, en.Gettext("greeting"), "greeting")
+	assert_equal(t,
+		fmt.Sprintf(en.NGettext("order %d beer", "order %d beers", 0), 0),
+		"order 0 beers",
+	)
+	assert_equal(t,
+		fmt.Sprintf(en.NGettext("order %d beer", "order %d beers", 1), 1),
+		"order 1 beer",
+	)
+	assert_equal(t,
+		fmt.Sprintf(en.NGettext("order %d beer", "order %d beers", 2), 2),
+		"order 2 beers",
+	)
+	ja := translations.Locale("ja")
+	assert_equal(t, ja.Gettext("greeting"), "greeting")
+	assert_equal(t,
+		fmt.Sprintf(ja.NGettext("order %d beer", "order %d beers", 0), 0),
+		"order 0 beers",
+	)
+	assert_equal(t,
+		fmt.Sprintf(ja.NGettext("order %d beer", "order %d beers", 1), 1),
+		"order 1 beer",
+	)
+	assert_equal(t,
+		fmt.Sprintf(ja.NGettext("order %d beer", "order %d beers", 2), 2),
+		"order 2 beers",
+	)
+	de := translations.Locale("de")
+	assert_equal(t, de.Gettext("greeting"), "greeting")
+	assert_equal(t,
+		fmt.Sprintf(de.NGettext("order %d beer", "order %d beers", 0), 0),
+		"order 0 beers",
+	)
+	assert_equal(t,
+		fmt.Sprintf(de.NGettext("order %d beer", "order %d beers", 1), 1),
+		"order 1 beer",
+	)
+	assert_equal(t,
+		fmt.Sprintf(de.NGettext("order %d beer", "order %d beers", 2), 2),
+		"order 2 beers",
+	)
+
 }
