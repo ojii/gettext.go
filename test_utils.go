@@ -1,4 +1,4 @@
-package gogettext
+package gettext
 
 import "testing"
 

@@ -1,10 +1,10 @@
-package gogettext
+package gettext
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ojii/gogettext/pluralforms"
+	"github.com/ojii/gettext.go/pluralforms"
 	"log"
 	"os"
 	"strings"

@@ -1,6 +1,6 @@
 // Implements gettext in pure Go with Plural Forms support.
 
-package gogettext
+package gettext
 
 import (
 	"fmt"

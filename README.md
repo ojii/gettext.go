@@ -1,6 +1,6 @@
 # gettext in golang
 
-[![Build Status](https://travis-ci.org/ojii/gogettext.svg?branch=master)](https://travis-ci.org/ojii/gogettext)
+[![Build Status](https://travis-ci.org/ojii/gettext.go.svg?branch=master)](https://travis-ci.org/ojii/gettext.go)
 
 ## TODO
 
@@ -17,7 +17,9 @@
 
 ```go
 
-translations := gogettext.NewTranslations("path/to/translations/", "messages", gogettext.DefaultResolver)
+import gettext
+
+translations := gettext.NewTranslations("path/to/translations/", "messages", gettext.DefaultResolver)
 
 locale = translations.Locale("en")
 
