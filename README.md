@@ -21,7 +21,7 @@ import gettext
 
 translations := gettext.NewTranslations("path/to/translations/", "messages", gettext.DefaultResolver)
 
-locale = translations.Locale("en")
+locale := translations.Locale("en")
 
 fmt.Println(locale.Gettext("hello from gettext"))
 
