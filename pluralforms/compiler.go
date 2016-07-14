@@ -292,48 +292,58 @@ func split_tokens(tokens []string, sep string) (s splitted, err error) {
 }
 
 // Scan a string for parenthesis
-func scan(s string) []match {
-	ret := []match{}
-	depth := 0
-	opener := 0
-	for index, char := range s {
-		switch char {
-		case '(':
-			if depth == 0 {
-				opener = index
+func scan(s string) <-chan match {
+	ch := make(chan match)
+	go func() {
+		depth := 0
+		opener := 0
+		for index, char := range s {
+			switch char {
+			case '(':
+				if depth == 0 {
+					opener = index
+				}
+				depth++
+			case ')':
+				depth--
+				if depth == 0 {
+					ch <- match{
+						open_pos: opener,
+						close_pos: index + 1,
+					}
+				}
 			}
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				ret = append(ret, match{open_pos: opener, close_pos: index + 1})
-			}
-		}
 
-	}
-	return ret
+		}
+		close(ch)
+	}()
+	return ch
 }
 
 // Split the string into tokens
-func split(s string) []string {
-	s = strings.Replace(s, " ", "", -1)
-	if !strings.Contains(s, "(") {
-		return []string{s}
-	}
-	last := 0
-	end := len(s)
-	ret := []string{}
-	for _, info := range scan(s) {
-		if last != info.open_pos {
-			ret = append(ret, s[last:info.open_pos])
+func split(s string) <- chan string {
+	ch := make(chan string)
+	go func() {
+		s = strings.Replace(s, " ", "", -1)
+		if !strings.Contains(s, "(") {
+			ch <- s
+		} else {
+			last := 0
+			end := len(s)
+			for info := range scan(s) {
+				if last != info.open_pos {
+					ch <- s[last:info.open_pos]
+				}
+				ch <- s[info.open_pos:info.close_pos]
+				last = info.close_pos
+			}
+			if last != end {
+				ch <- s[last:]
+			}
 		}
-		ret = append(ret, s[info.open_pos:info.close_pos])
-		last = info.close_pos
-	}
-	if last != end {
-		ret = append(ret, s[last:])
-	}
-	return ret
+		close(ch)
+	}()
+	return ch
 }
 
 // Tokenizes a string into a list of strings, tokens grouped by parenthesis are
@@ -349,7 +359,7 @@ func tokenize(s string) []string {
 		s = s[1 : len(s)-1]
 	}
 	ret := []string{}
-	for _, chunk := range split(s) {
+	for chunk := range split(s) {
 		if len(chunk) != 0 {
 			if chunk[0] == '(' && chunk[len(chunk)-1] == ')' {
 				ret = append(ret, chunk)
