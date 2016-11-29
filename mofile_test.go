@@ -41,6 +41,25 @@ func TestEnNGettext(t *testing.T) {
 	)
 }
 
+func TestNGettextBrokenMoNoCrash(t *testing.T) {
+	file, err := os.Open("testdata/en-no-plural-forms/messages.mo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := ParseMO(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert_equal(t,
+		catalog.NGettext("order %d beer", "order %d beers", 1),
+		"%d beer please",
+	)
+	assert_equal(t,
+		catalog.NGettext("order %d beer", "order %d beers", 2),
+		"%d beers please",
+	)
+}
+
 func TestJaGettext(t *testing.T) {
 	file, err := os.Open("testdata/ja/messages.mo")
 	if err != nil {
