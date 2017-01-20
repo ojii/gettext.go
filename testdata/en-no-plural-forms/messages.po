@@ -1,0 +1,14 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "greeting"
+msgstr "Hello"
+
+msgid "order %d beer"
+msgid_plural "order %d beers"
+msgstr[0] "%d beer please"
+msgstr[1] "%d beers please"

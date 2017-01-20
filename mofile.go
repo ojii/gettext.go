@@ -74,6 +74,16 @@ func (catalog mocatalog) NGettext(msgid string, msgid_plural string, n uint32) s
 			return msgid_plural
 		}
 	} else {
+		/* Bogus/missing pluralforms in mo */
+		if catalog.pluralforms == nil {
+			/* Use the Germanic plural rule.  */
+			if n == 1 {
+				return msgstrs[0]
+			} else {
+				return msgstrs[1]
+			}
+		}
+
 		index := catalog.pluralforms.Eval(n)
 		if index > len(msgstrs) {
 			if n == 1 {
